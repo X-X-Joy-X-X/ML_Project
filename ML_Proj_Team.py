@@ -1,3 +1,5 @@
+import numpy as np
+
 def ReLU(Z):
     return np.maximum(0, Z)
 
