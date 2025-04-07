@@ -1,10 +1,12 @@
 import os
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import random as rd
 from PIL import Image
 
+# Just for reproducing results
 rd.seed(0)
 
 # Load images from specific directory, compresses them to a smaller size, then converts them to usable values
@@ -43,28 +45,31 @@ def visualize_image(X, t, target_size):
 	plt.show()
 
 def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-n', '--none')
+	parser.add_argument('-w', '--worms')
+	args = parser.parse_args()
+
 	size = (64,64)
-	#no_worms_dir = input("Enter directory with worm: ")
-	#worms_dir = input("Enter directory with no worms: ")
+	no_worms_dir = args.none
+	worms_dir = args.worms
 
 	# THESE DIRECTORIES WORK ON MY PC - MUST BE CHANGED TO ASK USER
-	no_worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/0/'
-	worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/1/'
+	# no_worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/0/'
+	# worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/1/'
 
 	print("Reading no worms...")
 	X_no_worms, t_no_worms, no_worms_names = load_compress_worms(no_worms_dir, 0, target_size=size)
 	print(f"Images read: {X_no_worms.shape[0]}")
 	print(f"Image sizes: {X_no_worms.shape[1]}")
-	print(X_no_worms)
 
 	print("Reading worms...")
 	X_worms, t_worms, worms_names = load_compress_worms(worms_dir, 1, target_size=size)
 	print(f"Images read: {X_worms.shape[0]}")
-	print(f"Image sizes: {X_no_worms.shape[1]}")
-	print(X_worms)
+	print(f"Image sizes: {X_worms.shape[1]}")
 
-	# visualize_image(X_no_worms, t_no_worms, size)
-	# visualize_image(X_worms, t_worms, size)
+	visualize_image(X_no_worms, t_no_worms, size)
+	visualize_image(X_worms, t_worms, size)
 
 if __name__ == "__main__":
 	main()
