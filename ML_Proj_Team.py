@@ -4,9 +4,14 @@ import numpy as np
 
 
 #JOY - FLUSH THE MATH OUT WRITE DETAILED EQUATIONS HERE
-#W is the weight
-#b is the bias
-# A = ReLu()
+#     W is the weight
+#     b is the bias
+#     A0 is input layer
+#     Z1 is the unactivated firstlayeer, we apply a Weight W1 and input A1 and a Bias B1 tro it
+#     Therefore Z1 = W1 * A0 + B1
+#     Z1 goes into relu outcomes A1 which goes to Z2 = W2*A2 + b2
+#     Since A2 is gonna go to the output later we pass Z2 to softmax and we get A2 out
+#    
 
 
 
