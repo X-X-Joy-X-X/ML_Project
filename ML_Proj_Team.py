@@ -3,10 +3,10 @@ import numpy as np
 
 
 
-//JOY - FLUSH THE MATH OUT WRITE DETAILED EQUATIONS HERE
-//W is the weight
-//b is the bias
-// A = ReLu()
+#JOY - FLUSH THE MATH OUT WRITE DETAILED EQUATIONS HERE
+#W is the weight
+#b is the bias
+# A = ReLu()
 
 
 
