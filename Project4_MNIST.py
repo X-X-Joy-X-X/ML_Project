@@ -57,19 +57,20 @@ X_test = read_mnist_images(test_images_path)
 y_test = read_mnist_labels(test_labels_path)
 
 # Function to display a grid of images
-def display_images(images, labels, num_images=10):
-    plt.figure(figsize=(10, 2))
+def display_images(images, labels, num_images, cols=5):
+    rows = (num_images + cols - 1) // cols
+    plt.figure(figsize=(10,5))
     for i in range(num_images):
-        img = images[i].reshape(28, 28)  # Reshape the flat image to 28x28
-        plt.subplot(1, num_images, i + 1)
-        plt.imshow(img, cmap='gray')  # Use grayscale colormap
+        img = images[i].reshape(28, 28)  # Reshape image to 28x28
+        plt.subplot(rows, cols, i + 1)
+        plt.imshow(img, cmap='gray')  # Grayscale colormap
         plt.title(f"Label: {labels[i]}")
         plt.axis('off')
     plt.tight_layout()
     plt.show()
 
-# Show first 10 images from the training set
-display_images(X_train, y_train, num_images=20)
+# Show first 20 images from the testing set
+display_images(X_test, y_test, num_images=20, cols=5)
 
 k = 10  # Number of classes
 
