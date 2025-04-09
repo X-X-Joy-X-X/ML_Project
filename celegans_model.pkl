@@ -1,0 +1,130 @@
+import os
+import random
+import pickle
+import numpy as np
+import pandas as pd
+from PIL import Image, ImageEnhance, ImageFilter
+
+def softmax(logits):
+    shifted = logits - np.max(logits, axis=1, keepdims=True)
+    exps = np.exp(shifted)
+    return exps / np.sum(exps, axis=1, keepdims=True)
+
+def load_and_preprocess_image(img_path, target_size=(25,25)):
+    img = Image.open(img_path)
+    if img.size != target_size:
+        img = img.resize(target_size, Image.LANCZOS)
+
+    img = img.convert("L")
+    img = img.filter(ImageFilter.EDGE_ENHANCE_MORE)
+    contrast = ImageEnhance.Contrast(img)
+    sharpness = ImageEnhance.Sharpness(img)
+    img = contrast.enhance(3)
+    img = sharpness.enhance(3)
+
+    arr = np.array(img) / 255.0
+    return arr.flatten()
+
+def pick_random_images(folder, num_to_pick, valid_exts=('.png', '.tif')):
+    all_imgs = []
+    for fname in os.listdir(folder):
+        if fname.lower().endswith(valid_exts):
+            all_imgs.append(os.path.join(folder, fname))
+
+    if len(all_imgs) == 0:
+        print(f"No images found in {folder} with {valid_exts}.")
+        return []
+
+    if len(all_imgs) <= num_to_pick:
+        return all_imgs
+
+    return random.sample(all_imgs, num_to_pick)
+
+def random_test_two_folders(
+    worms_dir,
+    no_worms_dir,
+    model_path,
+    num_from_worms=10,
+    num_from_no_worms=10,
+    target_size=(25,25),
+    output_excel="random_inference_two_folders.xlsx"
+):
+    # Randomly pick from worms_dir
+    worms_imgs = pick_random_images(worms_dir, num_from_worms)
+    worms_folders = ["worms"] * len(worms_imgs)  # We'll label their source folder as "worms"
+
+    # Randomly pick from no_worms_dir
+    no_worms_imgs = pick_random_images(no_worms_dir, num_from_no_worms)
+    no_worms_folders = ["no_worms"] * len(no_worms_imgs)  # We'll label source folder as "no_worms"
+
+    # Combine
+    selected_image_paths = worms_imgs + no_worms_imgs
+    selected_folders = worms_folders + no_worms_folders
+
+    if not selected_image_paths:
+        print("No images selected; nothing to do.")
+        return
+
+    print(f"Randomly picked {len(worms_imgs)} from {worms_dir}.")
+    print(f"Randomly picked {len(no_worms_imgs)} from {no_worms_dir}.")
+
+    # Load the trained logistic regression weights
+    with open(model_path, 'rb') as f:
+        W = pickle.load(f)
+
+    filenames = []
+    folder_sources = []
+    predictions = []
+
+    # Preprocess & classify each selected image
+    for path, folder_label in zip(selected_image_paths, selected_folders):
+        filenames.append(os.path.basename(path))
+        folder_sources.append(folder_label)
+
+        x = load_and_preprocess_image(path, target_size)
+        x = x.reshape(1, -1)  # shape: (1, D)
+        logits = x.dot(W.T)   # shape: (1, k)
+        probs = softmax(logits)
+        pred_label = np.argmax(probs, axis=1)[0]  # 0 or 1
+        predictions.append(pred_label)
+
+    # Build a DataFrame that includes folder source
+    df = pd.DataFrame({
+        "Filename": filenames,
+        "SourceFolder": folder_sources,
+        "PredictedLabel": predictions
+    })
+
+    # Count how many 0 vs 1
+    label_counts = df["PredictedLabel"].value_counts().to_dict()
+    total_rows = []
+    for label_val in sorted(label_counts.keys()):
+        row_dict = {
+            "Filename": f"Total images for label {label_val}",
+            "SourceFolder": "",
+            "PredictedLabel": label_counts[label_val]
+        }
+        total_rows.append(row_dict)
+
+    df_totals = pd.DataFrame(total_rows)
+    df_final = pd.concat([df, df_totals], ignore_index=True)
+
+    df_final.to_excel(output_excel, index=False)
+    print(f"Random inference results saved to: {output_excel}")
+    print(df_final)
+
+if __name__ == "__main__":
+    # Example usage
+    worms_dir = r"C:/DESKTOP_SHIT/Machine Learning/Celegans_ModelGen/1"
+    no_worms_dir = r"C:/DESKTOP_SHIT/Machine Learning/Celegans_ModelGen/0"
+    model_path = r"C:/DESKTOP_SHIT/Machine Learning/trained_worms.pkl"
+
+    random_test_two_folders(
+        worms_dir=worms_dir,
+        no_worms_dir=no_worms_dir,
+        model_path=model_path,
+        num_from_worms=5,
+        num_from_no_worms=5,
+        target_size=(60,60),
+        output_excel="random_test_from_each_folder_with_source.xlsx"
+    )
