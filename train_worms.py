@@ -15,12 +15,12 @@ no_worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_
 worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/1/'
 
 batch_size = 128
-num_epochs = 1000
-lambda_reg = 0.001
-lr_init = 0.0002 # learning rate
-decay = 0.02
+num_epochs = 500
+lambda_reg = 0.0002
+lr_init = 0.0001 # learning rate
+decay = 0.01
 k = 2
-size = (25,25)
+size = (32,32)
 
 def load_compress_worms(directory, label, target_size=(101,101)):
 	images = []
@@ -48,8 +48,9 @@ def load_compress_worms(directory, label, target_size=(101,101)):
 			img = img.convert("L")
 			img = img.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
-			img = contrast.enhance(3)
+			img = contrast.enhance(4)
 			img = sharpness.enhance(3)
+			img = brightness.enhance(0.6)
 
 			img_arr = np.array(img)	/ 255		# Put image pixel values into range of [0, 1)
 
