@@ -9,40 +9,57 @@ from sklearn.model_selection import train_test_split
 import seaborn as sns
 import time
 import pandas as pd
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 
 no_worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/0/'
 worms_dir = '/home/rbs/Insync/School/Spring 2025/ECE 5370/Project 4/Celegans_ModelGen/1/'
 
 batch_size = 128
-num_epochs = 500
-lambda_reg = 0.00001
-lr_init = 0.000005 # learning rate
+num_epochs = 1000
+lambda_reg = 0.001
+lr_init = 0.0002 # learning rate
+decay = 0.02
 k = 2
-size = (64,64)
+size = (25,25)
 
 def load_compress_worms(directory, label, target_size=(101,101)):
 	images = []
 	labels = []
 	filenames = []
 
+	means = []
+	stds = []
+
 	# Search through every file in specified directory
+	idx = 0
 	for filename in os.listdir(directory):
 		# Check if file is a png image
-		if filename.endswith('.png'):
+		if filename.endswith('.png') and idx != 5450:
 			img_path = os.path.join(directory, filename)	# Get full path to image
 			img = Image.open(img_path)						# Open image
 
 			if img.size != target_size:						# Resize if not already in target size
-				img = img.resize(target_size)
+				img = img.resize(target_size, Image.LANCZOS)
 
-			img_array = np.array(img) / 255.0				# Put image pixel values into range of [0, 1)
+			contrast = ImageEnhance.Contrast(img)
+			sharpness = ImageEnhance.Sharpness(img)
+			brightness = ImageEnhance.Brightness(img)
 
-			flattened_img = img_array.flatten()				# Flatten image into 1-D array
+			img = img.convert("L")
+			img = img.filter(ImageFilter.EDGE_ENHANCE_MORE)
+
+			img = contrast.enhance(3)
+			img = sharpness.enhance(3)
+
+			img_arr = np.array(img)	/ 255		# Put image pixel values into range of [0, 1)
+
+			flattened_img = img_arr.flatten()
 
 			images.append(flattened_img)
 			labels.append(label)
 			filenames.append(filename)
+
+			idx += 1
 
 	return np.array(images), np.array(labels), filenames
 
@@ -143,7 +160,7 @@ def create_batches(X, T, batch_size):
 
     return batches
 
-def exponential_decay(epoch, initial_lr=0.0005, decay_rate=0.01):  # Slower decay
+def exponential_decay(epoch, initial_lr=lr_init, decay_rate=decay):  # Slower decay
     return initial_lr * np.exp(-decay_rate * epoch)
 
 def training(X, X_val, t, t_val, k, lambda_reg=0.01, num_epochs=100, batch_size=128):
@@ -157,7 +174,7 @@ def training(X, X_val, t, t_val, k, lambda_reg=0.01, num_epochs=100, batch_size=
     val_accuracies = []
 
     for epoch in range(num_epochs):
-        lr = exponential_decay(epoch, initial_lr=lr_init)
+        lr = exponential_decay(epoch)
 
         epoch_train_loss = 0
         epoch_train_acc = 0
