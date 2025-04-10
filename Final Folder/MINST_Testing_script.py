@@ -142,7 +142,7 @@ label_counts.columns = ['Label', 'Total Images']
 
 # Save to Excel
 output_dir = os.path.dirname(__file__)
-output_file_path = os.path.join(output_dir, 'Worm_Output.xlsx')
+output_file_path = os.path.join(output_dir, 'MNIST_Output.xlsx')
 
 # Save to Excel
 with pd.ExcelWriter(output_file_path) as writer:
