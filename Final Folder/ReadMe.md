@@ -3,9 +3,9 @@ Group Members: Dulani, Joy, Robert
 
 ## Instructions to run the MNIST script 
 
-python MNIST_Testing_script.py -i path/to/mnist_test_images –l
+python MNIST_Testing_script.py -i path/to/mnist_test_images –l path/to/mnist_test_labels 
 
-path/to/mnist_test_labels -m path/to/trained_model.pkl 
+-m path/to/trained_model.pkl 
 
 ## Instructions to run inference on worms model 
 
