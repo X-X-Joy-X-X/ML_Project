@@ -1,7 +1,7 @@
 ## ML PROJECT FINAL SUBMISSION
 Group Members: Dulani, Joy, Robert
 
-#Instructions to run inference on worms model 
+###Instructions to run inference on worms model 
 
 Provide Path to the testing file with worms/no worms images 
 
