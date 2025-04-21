@@ -18,12 +18,12 @@ parser.add_argument(
     type=str, 
     required=True
 )
-parser.add_argument(
-    "-l", "--labels", 
-    help="Directory path containing the MNIST dataset test labels (t10k-labels.idx1-ubyte)", 
-    type=str, 
-    required=True
-)
+# parser.add_argument(
+#     "-l", "--labels", 
+#     help="Directory path containing the MNIST dataset test labels (t10k-labels.idx1-ubyte)", 
+#     type=str, 
+#     required=True
+# )
 parser.add_argument(
     "-m", "--model", 
     help="Directory path containing the trained model", 
@@ -34,16 +34,16 @@ parser.add_argument(
 args = parser.parse_args()
 
 test_images_path = args.images
-test_labels_path = args.labels
+# test_labels_path = args.labels
 
 # Check if the input files exist
 if not os.path.isfile(test_images_path):
     print(f"Error: Input file path does not exist: {test_images_path}\n")
     exit(1)
 
-if not os.path.isfile(test_labels_path):
-    print(f"Error: Input file path does not exist: {test_labels_path}\n")
-    exit(1)
+# if not os.path.isfile(test_labels_path):
+#     print(f"Error: Input file path does not exist: {test_labels_path}\n")
+#     exit(1)
 
 if not os.path.isfile(args.model):
     print(f"Error: Model file path does not exist: {args.model}\n")
