@@ -9,6 +9,7 @@ import seaborn as sns
 import time
 import struct
 import pandas as pd
+from PIL import Image
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description="Test the model trained on MNIST dataset.")
@@ -18,12 +19,6 @@ parser.add_argument(
     type=str, 
     required=True
 )
-# parser.add_argument(
-#     "-l", "--labels", 
-#     help="Directory path containing the MNIST dataset test labels (t10k-labels.idx1-ubyte)", 
-#     type=str, 
-#     required=True
-# )
 parser.add_argument(
     "-m", "--model", 
     help="Directory path containing the trained model", 
@@ -34,49 +29,53 @@ parser.add_argument(
 args = parser.parse_args()
 
 test_images_path = args.images
-# test_labels_path = args.labels
 
-# Check if the input files exist
-if not os.path.isfile(test_images_path):
-    print(f"Error: Input file path does not exist: {test_images_path}\n")
-    exit(1)
-
-# if not os.path.isfile(test_labels_path):
-#     print(f"Error: Input file path does not exist: {test_labels_path}\n")
-#     exit(1)
-
+# Check if the model file exists
 if not os.path.isfile(args.model):
     print(f"Error: Model file path does not exist: {args.model}\n")
     exit(1)
 
+def load_and_preprocess_image(img_path):
+    """Load and preprocess an image from path."""
+    img = Image.open(img_path)
+    arr = np.array(img) / 255.0
+    arr = arr.flatten()
+    return arr
 
 def read_mnist_images(file_path):
-    with open(file_path, 'rb') as f:
-        # Read the magic number and number of images
-        magic, num_images = struct.unpack('>II', f.read(8)) #reads the first 8 bytes of the file: The first 4 bytes are the magic number - tells data type (which we read but do not use). The next 4 bytes tell us how many images are in the file
-        # We don't really use magic so maybe can remove?
-        # Read the number of rows and columns
-        num_rows, num_cols = struct.unpack('>II', f.read(8))
-        # Read the image data
-        images = np.frombuffer(f.read(), dtype=np.uint8).reshape(num_images, num_rows * num_cols)
-        return images / 255.0  # Do we need to Normalize to [0, 1]...........?
+    """Read MNIST test images and sort them numerically."""
+    image_paths = []
+    for fname in os.listdir(file_path):
+        if fname.lower().endswith('.tif'):
+            image_paths.append(os.path.join(file_path, fname))
+    
+    # Sort by numeric part of filename to ensure consistency
+    image_paths.sort(key=lambda x: int(os.path.basename(x).replace('img', '').replace('.tif', '')))
+    print(f"Found {len(image_paths)} image files")
+    return image_paths
 
 def read_mnist_labels(file_path):
-    with open(file_path, 'rb') as f:
-        # Read the magic number and number of labels
-        magic, num_labels = struct.unpack('>II', f.read(8))
-        # Read the label data
-        labels = np.frombuffer(f.read(), dtype=np.uint8)
-        return labels
+    """Read MNIST test labels from a text file."""
+    labels_found = False
+    for fname in os.listdir(file_path):
+        if fname.lower().endswith('.txt'):
+            path = os.path.join(file_path, fname)
+            labels = np.loadtxt(path, dtype=int)
+            labels_found = True
+            print(f"Loaded {len(labels)} labels from {fname}")
+            break
     
-# Load the dataset
-X_test = read_mnist_images(test_images_path)
-y_test = read_mnist_labels(test_labels_path)
+    if not labels_found:
+        print("No label file found with .txt extension")
+        exit(1)
+        
+    return labels
 
 def display_images(images, labels, num_images, cols=5):
+    """Display a grid of images with their labels."""
     rows = (num_images + cols - 1) // cols
     plt.figure(figsize=(10,5))
-    for i in range(num_images):
+    for i in range(min(num_images, len(images))):
         img = images[i].reshape(28, 28)  # Reshape image to 28x28
         plt.subplot(rows, cols, i + 1)
         plt.imshow(img, cmap='gray')  # Grayscale colormap
@@ -85,30 +84,72 @@ def display_images(images, labels, num_images, cols=5):
     plt.tight_layout()
     plt.show()
 
+def one_hot_encoding(y, k):
+    """Convert labels to one-hot encoding."""
+    return np.eye(k)[y]
+
+def softmax(x):
+    """Compute softmax values for each set of scores in x."""
+    e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+    return e_x / e_x.sum(axis=1, keepdims=True)
+
+# Load the dataset and model
+image_paths = read_mnist_images(test_images_path)
+y_test = read_mnist_labels(test_images_path)
+
+# Check that number of images matches number of labels
+if len(image_paths) != len(y_test):
+    print(f"Warning: Number of images ({len(image_paths)}) doesn't match number of labels ({len(y_test)})")
+    # Truncate to the smaller of the two
+    min_count = min(len(image_paths), len(y_test))
+    image_paths = image_paths[:min_count]
+    y_test = y_test[:min_count]
+
+# Process images
+filenames = []
+X_test = []
+
+for path in image_paths:
+    filename = os.path.basename(path)
+    filenames.append(filename)
+    x = load_and_preprocess_image(path)
+    X_test.append(x)
+
+X_test = np.array(X_test)
+
 # Show first 20 images from the testing set
 display_images(X_test, y_test, num_images=20, cols=5)
 
-
+# Define number of classes
 k = 10
 
-def one_hot_encoding(y_train, k):
-    return np.eye(k)[y_train]
-
-y_test = one_hot_encoding(y_test, k)
-
-def softmax(a):
-    exp_a = np.exp(a - np.max(a, axis=0, keepdims=True))
-    y_pred = exp_a /(np.sum(exp_a, axis=0, keepdims=True))
-    return y_pred.T
+# One-hot encode the labels
+y_test_one_hot = one_hot_encoding(y_test, k)
 
 # Load the model
 with open(args.model, 'rb') as file:
     loaded_model = pickle.load(file)
 
+# Print shapes for debugging
+print(f"Model shape: {loaded_model.shape}")
+print(f"X_test shape: {X_test.shape}")
+
 start_time = time.time()
 
-logits_test = np.dot(loaded_model, X_test.T)  # Shape: (num_samples, k)
-Y_preds = softmax(logits_test)  # Shape: (num_samples, k)
+# Adjust the matrix multiplication based on the model shape
+if loaded_model.shape[1] == X_test.shape[1]:
+    # Model is (10, 784) and X_test is (num_samples, 784)
+    logits_test = np.dot(X_test, loaded_model.T)
+elif loaded_model.shape[0] == X_test.shape[1]:
+    # Model is (784, 10) and X_test is (num_samples, 784)
+    logits_test = np.dot(X_test, loaded_model)
+else:
+    # Try transposing the model if dimensions don't match
+    print(f"Warning: Dimensions don't align. Attempting to transpose.")
+    logits_test = np.dot(X_test, loaded_model.T)
+
+# Apply softmax to get probabilities
+Y_preds = softmax(logits_test)
 y_pred = np.argmax(Y_preds, axis=1)
 
 end_time = time.time()
@@ -116,11 +157,16 @@ testing_time = end_time - start_time
 print(f"Testing execution time: {testing_time:.5f} seconds")
 
 # Calculate accuracy
-accuracy = np.mean(np.argmax(y_test, axis=1) == y_pred)
+y_test_argmax = np.argmax(y_test_one_hot, axis=1)
+accuracy = np.mean(y_test_argmax == y_pred)
 print(f'Test Accuracy: {accuracy * 100:.2f}%')
 
+# Print more details for debugging
+print(f"Ground truth distribution: {np.bincount(y_test_argmax, minlength=10)}")
+print(f"Prediction distribution: {np.bincount(y_pred, minlength=10)}")
+
 # Confusion matrix
-cm = confusion_matrix(np.argmax(y_test, axis=1), y_pred)
+cm = confusion_matrix(y_test_argmax, y_pred)
 plt.figure(figsize=(10, 7))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=np.arange(k), yticklabels=np.arange(k))
 plt.xlabel('Predicted')
@@ -128,9 +174,8 @@ plt.ylabel('True')
 plt.title('Confusion Matrix')
 plt.show()
 
-# Write Output to Excel file
 output_data = {
-    'Image Filename': [f'image_{i}.png' for i in range(len(y_pred))],
+    'Image Filename': filenames,
     'Label': y_pred
 }
 
@@ -141,10 +186,10 @@ label_counts = df['Label'].value_counts().reset_index()
 label_counts.columns = ['Label', 'Total Images']
 
 # Save to Excel
-output_dir = os.path.dirname(__file__)
+output_dir = os.path.dirname(os.path.abspath(__file__))
 output_file_path = os.path.join(output_dir, 'MNIST_Output.xlsx')
 
-# Save to Excel
+# Save to Excel - simplified format with just filename and predicted label
 with pd.ExcelWriter(output_file_path) as writer:
     label_counts.to_excel(writer, sheet_name='Label Counts', index=False)
     acc_results.to_excel(writer, sheet_name='Label Counts', index=False, startcol=5)
