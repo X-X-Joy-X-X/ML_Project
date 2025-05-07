@@ -13,7 +13,7 @@ worms_dir   = '/home/rbs/Documents/venv311/worms/1/'
 target_size = (32, 32)
 batch_size = 64
 epochs = 100
-learning_rate = 0.001
+learning_rate = 0.002
 model_output = 'cnn_worm_classifier.h5'
 
 # ========================== IMAGE LOADING ===========================
