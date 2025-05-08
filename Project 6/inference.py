@@ -35,8 +35,10 @@ def load_and_preprocess_images(directory, target_size=(32, 32)):
             # === Remove this code block before submitting ===
             if filename.endswith('NW.png'):
                label = 0
-            else:
+            elif filename.endswith('W.png'):
                label = 1
+            else:
+                label = -1
             labels.append(label)
             # ========================================
 
@@ -64,7 +66,7 @@ def run_inference(img_dir, model_path, output_excel="CNN_Inference.xlsx"):
     Y_test = np.argmax(pred, axis=1)  # Get predicted labels for all images
     
     # Calculate accuracy ---------- Maybe Delete before submitting
-    if len(Y_test) > 0:
+    if (len(Y_test) > 0 and T_test[0]!=-1):
         Y_test_categorical = to_categorical(T_test, num_classes=2)
         results = model.evaluate(X_test, Y_test_categorical, verbose=0)
         if isinstance(results, list):
@@ -74,7 +76,7 @@ def run_inference(img_dir, model_path, output_excel="CNN_Inference.xlsx"):
         print(f"Test Accuracy: {test_acc * 100:.2f}%")
     else:
         test_acc = None
-        print("Labels available to calculate accuracy.")
+        print("Labels unavailable to calculate accuracy.")
 
     # Build DataFrame
     df = pd.DataFrame({
